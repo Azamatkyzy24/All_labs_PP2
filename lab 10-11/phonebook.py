@@ -1,21 +1,24 @@
 import psycopg2, csv
 
-conn = psycopg2.connect(database = "phonebook", 
-                        user = "postgres", 
-                        host= 'localhost',
-                        password = "1465",
-                        port = 5432)
-
+# Connect to the PostgreSQL database
+conn = psycopg2.connect(
+    database="phonebook", 
+    user="postgres", 
+    host="localhost", 
+    password="1465", 
+    port=5432
+)
 conn.autocommit = True
 
-command_create_db = 'CREATE DATABASE phone'
+# SQL commands
 command_create_table = """
-    CREATE TABLE phonebook( 
+    CREATE TABLE IF NOT EXISTS phonebook( 
         user_id SERIAL NOT NULL PRIMARY KEY, 
         username VARCHAR(255),
         phone_number VARCHAR(255)
-    )
+    );
 """
+
 command_insert_into_csv = 'INSERT INTO phonebook (username, phone_number) VALUES (%s, %s)'
 
 command_update_phone = 'UPDATE phonebook SET phone_number = %s WHERE user_id = %s'
@@ -32,10 +35,13 @@ command_delete_by_name = "DELETE FROM phonebook WHERE username = %s"
 
 cur = conn.cursor()
 
-csv_file ='C:/Users/aidan/OneDrive/Рабочий стол/lab 10-11/phones.csv'
+csv_file = 'C:/Users/aidan/OneDrive/Рабочий стол/lab 10-11/phones.csv'
 
+# Ensure the table is created
+cur.execute(command_create_table)
 
 def csv_to_db(csv_file):
+    """Function to insert records from CSV file."""
     with open(csv_file, 'r', encoding='utf-8-sig') as file_csv:
         reader_csv = csv.reader(file_csv, delimiter=',')
         for row in reader_csv:
@@ -44,71 +50,65 @@ def csv_to_db(csv_file):
             except Exception as e:
                 print(f"Error inserting row {row}: {e}")
 
-# Inserting data into the PhoneBook.
-
-
-# Printing every row of the table
 def print_rows():
+    """Function to print all records from the phonebook."""
     cur.execute('SELECT * FROM phonebook')
     results = cur.fetchall()
     for row in results:
         print(row)
 
-
-# Inserting data to the table 
 def insert_to_db():
+    """Insert new user into phonebook."""
     username = input('Enter the username: ')
     phone = input('Enter the phone number: ')
     cur.execute(command_insert_into_csv, (username, phone))
     print("Inserted successfully!")
     print_rows()
 
-# 3 Updating data in the table (change user first name or phone)
-
-
-# Changing by the name
 def change_name():  
+    """Update user name."""
     new_username = input("Enter the new username: ")
-    id = int(input('Enter the ID you want to change: '))
-    cur.execute(command_update_name, (new_username, id))
+    user_id = int(input('Enter the ID you want to change: '))
+    cur.execute(command_update_name, (new_username, user_id))
     print_rows()
 
-# Changing by the phone number
 def change_phone_number():
+    """Update user phone number."""
     new_phone = input("Enter the new phone number: ")
-    id = int(input('Enter the ID you want to change: '))
-    cur.execute(command_update_phone, (new_phone, id))
+    user_id = int(input('Enter the ID you want to change: '))
+    cur.execute(command_update_phone, (new_phone, user_id))
     print_rows()
 
-# Filtering by the name that starts by the user's input
 def filter_name_start_by():
-    starts_with = input("Enter the letters that have to start with: ")
-    cur.execute(command_filter_name_starts, (starts_with + '%',))   
+    """Filter users by the starting letters of the name."""
+    starts_with = input("Enter the letters that should start the name: ")
+    cur.execute(command_filter_name_starts, (starts_with + '%',))
     results = cur.fetchall()
     for row in results:
         print(row)
 
-# Filtering by the name taht starts by the user's input
 def filter_phone_start_by():
-    starts_with = input('Enter the digits that the phone number has to start with: ')
-    cur.execute(command_filter_phone_starts, (starts_with + '%',)) # After cur.execute(...) the result of the 
-    results = cur.fetchall()                                       # query is saved inside the cur object  
-    for row in results: # .fetchall() takes all rows from the result of the last cur.execute() query 
-        print(row)      # and returns them as a list of tuples
+    """Filter users by the starting digits of the phone number."""
+    starts_with = input('Enter the digits that the phone number should start with: ')
+    cur.execute(command_filter_phone_starts, (starts_with + '%',)) 
+    results = cur.fetchall()
+    for row in results:
+        print(row)
 
-# Deleting by the phone number
 def delete_by_phone():
+    """Delete user by phone number."""
     phone_number = input('Enter the phone you want to delete: ')
     cur.execute(command_delete_by_phone, (phone_number,))
     print_rows()
 
-# Deleting by the name
 def delete_by_name():
+    """Delete user by name."""
     name = input('Enter the name you want to delete: ')
     cur.execute(command_delete_by_name, (name,))
     print_rows()
 
 def get_starting_with(letter):
+    """Get users whose username starts with the given letter."""
     command = 'SELECT username FROM phonebook WHERE LEFT(username, 1) = %s'
     try:
         with conn.cursor() as cur:
@@ -118,8 +118,8 @@ def get_starting_with(letter):
     except (psycopg2.DatabaseError, Exception) as error:
         print(error)
 
-# Getting the user input
 def get_user_input():
+    """Display available commands and get user input."""
     commands = """    insert - Inserting into the database
     change name - Changing the name of the user by the id
     change phone number - Changing the phone number of the user by the id
@@ -154,10 +154,6 @@ def get_user_input():
     elif user_input == 'start with letter':
         letter = input('Enter the letter: ')
         get_starting_with(letter)
-
-# cur.execute(command_create_db)
-
-# cur.execute(command_create_table)
 
 get_user_input()
 
